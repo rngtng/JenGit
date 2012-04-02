@@ -53,7 +53,7 @@ namespace 'chrome' do
     end
   end
 
-  task :release => :prepare do
+  task :release => :build do
     sh "zip -r build/chrome-extension.zip #{@out_path}/"
   end
 end
@@ -86,7 +86,7 @@ namespace 'firefox' do
     end
   end
 
-  task :release => :prepare do
+  task :release => :build do
     cfx "--pkgdir=#{@out_path} xpi"
     sh <<-END
       mv soundcloud-gmail-firefox-extension.xpi build/firefox-extension.xpi

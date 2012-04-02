@@ -3,7 +3,7 @@
     addLink : function($li, build, status) {
       $li.html('<a href="' + build.url + 'console" class="' + status.toLowerCase() + '" target="_blank">' + status + '</a>');
       if (status != "SUCCESS") {
-        $("js-mergeable-clean").hide();
+        $("#js-mergeable-clean").hide();
       };
     },
 
