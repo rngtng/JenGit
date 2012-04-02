@@ -1,4 +1,5 @@
 require 'rake'
+require 'erb'
 
 VENDOR_JS_FILES = %w(http://code.jquery.com/jquery-1.7.2.min.js)
 TITLE           = "JenGit"
@@ -44,12 +45,12 @@ namespace 'chrome' do
       mkdir -p #{@out_path}
       #{merge(@js_files, "#{@out_path}/javascripts.js", true)}
       #{merge(@css_files, "#{@out_path}/styles.css", true)}
-      echo "TITLE = '#{TITLE}';VERSION = '#{VERSION}';DESCRIPTION = '#{DESCRIPTION}'" > gadget.rb
-      erubis -E PrintOut -l ruby #{@in_path}/manifest.json.erb >> gadget.rb
-      ruby gadget.rb > #{@out_path}/manifest.json
       cp assets/logo* #{@out_path}/
-      rm -f gadget.rb
     END
+
+    File.open("#{@out_path}/manifest.json", "w") do |file|
+      file.write ERB.new(File.read("#{@in_path}/manifest.json.erb")).result
+    end
   end
 
   task :release => :prepare do
@@ -146,10 +147,3 @@ task :deploy => :build_all do
 end
 
 task :default => :build_all
-
-
-# require 'erb'
-# name = "Rasmus"
-# template_string = "My name is <%= name %>"
-# template = ERB.new template_string
-# puts template.result # prints "My name is Rasmus"
