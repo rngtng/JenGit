@@ -1,0 +1,155 @@
+require 'rake'
+
+VENDOR_JS_FILES = %w(http://code.jquery.com/jquery-1.7.2.min.js)
+TITLE           = "JenGit"
+VERSION         = File.open('VERSION').read.strip
+DESCRIPTION     = "Checks Buildstatus of a GitHub PullRequest like butter"
+
+def vendor_js_files
+  VENDOR_JS_FILES.map do |file|
+    File.basename(file).tap do |out|
+      `wget #{file} -O #{out}` unless File.exists?(out)
+    end
+  end
+end
+
+def merge(in_files, out_file, minify = false)
+  if minify
+    "juicer -q merge -s -f -o #{out_file} #{Array(in_files).join(' ')}"
+  else
+    "cat #{Array(in_files).join(' ')} > #{out_file}"
+  end
+end
+
+def cfx(command)
+  sh <<-END
+    cd /Applications/addon-sdk
+    source bin/activate
+    cd -
+    cfx #{command}
+  END
+end
+
+namespace 'chrome' do
+  task :prepare do |task|
+    @in_path   = task.scope.last
+    @out_path  = "build/#{@in_path}"
+    @js_files  = vendor_js_files + %W(src/jengit.js)
+    @css_files = %w(src/style.css)
+  end
+
+  desc "Build the gadget and the xml files"
+  task :build => :prepare do
+    sh <<-END
+      mkdir -p #{@out_path}
+      #{merge(@js_files, "#{@out_path}/javascripts.js", true)}
+      #{merge(@css_files, "#{@out_path}/styles.css", true)}
+      echo "TITLE = '#{TITLE}';VERSION = '#{VERSION}';DESCRIPTION = '#{DESCRIPTION}'" > gadget.rb
+      erubis -E PrintOut -l ruby #{@in_path}/manifest.json.erb >> gadget.rb
+      ruby gadget.rb > #{@out_path}/manifest.json
+      cp assets/logo* #{@out_path}/
+      rm -f gadget.rb
+    END
+  end
+
+  task :release => :prepare do
+    sh "zip -r build/chrome-extension.zip #{@out_path}/"
+  end
+end
+
+
+namespace 'firefox' do
+  task :prepare do |task|
+    @in_path   = task.scope.last
+    @out_path  = "build/#{@in_path}"
+    @js_files  = %W(src/gadgetize.js src/loader.js)
+    @css_files = %w(src/style.css)
+  end
+
+  desc "Build the gadget and the xml files"
+  task :build => :prepare do
+    sh <<-END
+      mkdir -p #{@out_path}/lib
+      mkdir -p #{@out_path}/data
+      #{merge(@js_files, "#{@out_path}/data/javascripts.js")}
+      #{merge(@css_files, "#{@out_path}/data/styles.css")}
+      echo "@title = '#{TITLE}';@version = '#{VERSION}';@description = '#{DESCRIPTION}'" > gadget.rb
+      erubis -E PrintOut -l ruby #{@in_path}/package.json.erb >> gadget.rb
+      ruby gadget.rb > #{@out_path}/package.json
+      cp #{@in_path}/main.js #{@out_path}/lib
+      cp assets/logo-48.png #{@out_path}/icon.png
+      rm -f gadget.rb
+    END
+    vendor_js_files.each do |file|
+      sh "cp #{file} #{@out_path}/data/"
+    end
+  end
+
+  task :release => :prepare do
+    cfx "--pkgdir=#{@out_path} xpi"
+    sh <<-END
+      mv soundcloud-gmail-firefox-extension.xpi build/firefox-extension.xpi
+    END
+  end
+
+  task :test => :prepare do
+    cfx "--pkgdir=#{@out_path} test"
+  end
+
+  task :run => :prepare do
+    cfx "--pkgdir=#{@out_path} run"
+  end
+end
+
+task :clean do
+  sh <<-END
+    rm -rf build live *.js
+  END
+end
+
+desc "Build all"
+task :build_all => :clean do
+  Rake::Task["chrome:build"].execute
+  Rake::Task["firefox:build"].execute
+end
+
+desc "Release all"
+task :release_all => :build_all do
+  Rake::Task["chrome:release"].execute
+  Rake::Task["firefox:release"].execute
+end
+
+desc "Deploys gadget to live branch"
+task :deploy => :build_all do
+  unless `git branch` =~ /^\* master$/
+    puts "You must be on the master branch to deploy!"
+    exit!
+  end
+
+  if `git fetch --tags && git tag`.split(/\n/).include?(VERSION)
+    raise "Version #{VERSION} already deployed"
+  end
+
+  sh <<-END
+    cp LICENSE VERSION CHANGES.md build/
+    git checkout --track -b build origin/build
+    git checkout build
+    rm -rf *extension*
+    rm -rf google-app
+    mv -f build/* .
+    git commit -a --allow-empty -m 'Release #{VERSION}'
+
+    git push origin build
+    git push origin --tags
+    git checkout master
+  END
+end
+
+task :default => :build_all
+
+
+# require 'erb'
+# name = "Rasmus"
+# template_string = "My name is <%= name %>"
+# template = ERB.new template_string
+# puts template.result # prints "My name is Rasmus"

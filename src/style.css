@@ -1,0 +1,33 @@
+.jengit ol {
+  counter-reset: item;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.jengit li {
+  display: inline-block;
+  padding-right: 10px;
+}
+
+.jengit li:before {
+  display: inline-block;
+  content: counter(item) ". ";
+  counter-increment: item;
+  padding-right: 2px;
+}
+
+.jengit a {
+  font-weight: bold;
+}
+
+.jengit a.failure {
+  color: red;
+}
+
+.jengit a.notfound {
+  color: yellow;
+}
+
+.jengit a.success {
+  color: green;
+}

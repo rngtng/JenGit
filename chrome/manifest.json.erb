@@ -1,0 +1,19 @@
+{
+  "name": "<%= TITLE %>",
+  "version": "<%= VERSION %>",
+  "description": "<%= DESCRIPTION %>",
+  "icons" : {
+    "48" : "logo-48.png",
+    "128" : "logo-128.png"
+  },
+  "permissions": [
+    "http://builder.soundcloud.com/"
+  ],
+  "content_scripts": [ {
+    "matches" : [ "https://github.com/soundcloud/*"],
+    "js" : ["javascripts.js"],
+    "css": ["styles.css"],
+    "run_at" : "document_idle"
+  } ],
+  "manifest_version" : 2
+}
