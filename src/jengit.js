@@ -1,7 +1,7 @@
 (function($){
   var methods = {
-    addLink : function($li, build, status) {
-      $li.html('<a href="' + build.url + 'console" class="' + status.toLowerCase() + '" target="_blank">' + status + '</a>');
+    addLink : function($li, url, status) {
+      $li.html('<a href="' + url + 'console" class="' + status.toLowerCase() + '" target="_blank">' + status + '</a>');
       if (status != "SUCCESS") {
         $("#js-mergeable-clean").hide();
       };
@@ -14,10 +14,10 @@
           url: options.url,
           dataType: 'json',
           success: function(build) {
-            methods.addLink($output, build, build.result || "RUNNING");
+            methods.addLink($output, build.url, build.result || "RUNNING");
           },
           error: function(build) {
-            methods.addLink($output, build, "NOTFOUND");
+            methods.addLink($output, "#", "NOTFOUND");
           },
         });
       });
