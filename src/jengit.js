@@ -37,18 +37,20 @@
 })(jQuery);
 
 $(function() {
-  $(".commit-ref.from").each(function(){
-    var shards = 6,
-    branchName = $(this).html(),
-    url = "http://builder.soundcloud.com/job/soundcloud_" + branchName + "_specs_00%SHARDNR%/lastBuild/api/json",
-    $ol = $('<ol></ol>');
+  $(".pull-head .state-open").each(function(){
+    $(".pull-head .commit-ref.from:first").each(function(){
+      var shards = 6,
+      branchName = $(this).html(),
+      url = "http://builder.soundcloud.com/job/soundcloud_" + branchName + "_specs_00%SHARDNR%/lastBuild/api/json",
+      $ol = $('<ol></ol>');
 
-    for(var index = 1; index <= shards; index++) {
-      $('<li>Checking...</li>').appendTo($ol).jenGit({
-        url: url.replace(/%SHARDNR%/, index)
-      });
-    }
+      for(var index = 1; index <= shards; index++) {
+        $('<li>Checking...</li>').appendTo($ol).jenGit({
+          url: url.replace(/%SHARDNR%/, index)
+        });
+      }
 
-    $(".content-body.markdown-body.markdown-format:first").append($('<div class="jengit"><b>Tests:</b></div>').append($ol));
+      $(".content-body.markdown-body.markdown-format:first").append($('<div class="jengit"><b>Tests:</b></div>').append($ol));
+    });
   });
 });
