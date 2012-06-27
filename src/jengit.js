@@ -2,24 +2,36 @@
   var methods = {
     addLink : function($li, url, status) {
       $li.html('<a href="' + url + 'console" class="' + status.toLowerCase() + '" target="_blank">' + status + '</a>');
-      if (status != "SUCCESS") {
+
+      if (status == "SUCCESS") {
+        $("#js-mergeable-clean").show();
+      }
+      else {
         $("#js-mergeable-clean").hide();
       };
     },
 
+    request: function(output, url) {
+      $.ajax({
+        url: url + '?' + Number(new Date()),
+        dataType: 'json',
+        success: function(build) {
+          methods.addLink(output, build.url, build.result || "RUNNING");
+        },
+        error: function(build) {
+          methods.addLink(output, "#", "NOTFOUND");
+        }
+      });
+    },
+
     init : function( options ) {
       return this.each(function() {
-        var $output = $(this);
-        $.ajax({
-          url: options.url,
-          dataType: 'json',
-          success: function(build) {
-            methods.addLink($output, build.url, build.result || "RUNNING");
-          },
-          error: function(build) {
-            methods.addLink($output, "#", "NOTFOUND");
-          },
-        });
+        var output = $(this);
+        methods.request(output, options.url);
+
+        setInterval(function() {
+          methods.request(output, options.url);
+        }, 60000);
       });
     }
   };
@@ -40,13 +52,12 @@ $(function() {
   $(".pull-head .state-open").each(function(){
     $(".pull-head .commit-ref.from:first").each(function(){
       var shards = 6,
-      branchName = $(this).html(),
-      url = "http://builder.soundcloud.com/job/soundcloud_" + branchName + "_specs_00%SHARDNR%/lastBuild/api/json",
-      $ol = $('<ol></ol>');
+          branchName = $(this).html(),
+          $ol = $('<ol></ol>');
 
       for(var index = 1; index <= shards; index++) {
         $('<li>Checking...</li>').appendTo($ol).jenGit({
-          url: url.replace(/%SHARDNR%/, index)
+          url: "http://builder.soundcloud.com/job/soundcloud_" + branchName + "_specs_00" + index + "/lastBuild/api/json"
         });
       }
 
