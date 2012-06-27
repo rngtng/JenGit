@@ -14,12 +14,18 @@ def vendor_js_files
   end
 end
 
-def merge(in_files, out_file, minify = false)
-  if minify
-    "juicer -q merge -s -f -o #{out_file} #{Array(in_files).join(' ')}"
-  else
-    "cat #{Array(in_files).join(' ')} > #{out_file}"
+def save(in_files, out_file)
+  File.open(out_file, "w") do |file|
+    file.write merge(in_files)
   end
+end
+
+def merge(files)
+  Array(files).map do |name|
+    File.read(name).tap do |content|
+      content.replace(ERB.new(content).result) if name =~ /\.erb/
+    end
+  end.join("\n\n")
 end
 
 def cfx(command)
@@ -31,7 +37,7 @@ def cfx(command)
   END
 end
 
-namespace 'chrome' do
+namespace :chrome do
   task :prepare do |task|
     @in_path   = task.scope.last
     @out_path  = "build/#{@in_path}"
@@ -41,16 +47,11 @@ namespace 'chrome' do
 
   desc "Build the gadget and the xml files"
   task :build => :prepare do
-    sh <<-END
-      mkdir -p #{@out_path}
-      #{merge(@js_files, "#{@out_path}/javascripts.js", true)}
-      #{merge(@css_files, "#{@out_path}/styles.css", true)}
-      cp assets/logo* #{@out_path}/
-    END
-
-    File.open("#{@out_path}/manifest.json", "w") do |file|
-      file.write ERB.new(File.read("#{@in_path}/manifest.json.erb")).result
-    end
+    `mkdir -p #{@out_path}`
+    `cp assets/logo* #{@out_path}/`
+    save(@js_files, "#{@out_path}/javascripts.js")
+    save(@css_files, "#{@out_path}/styles.js")
+    save("#{@in_path}/manifest.json.erb", "#{@out_path}/manifest.json")
   end
 
   task :release => :build do
@@ -59,7 +60,7 @@ namespace 'chrome' do
 end
 
 
-namespace 'firefox' do
+namespace :firefox do
   task :prepare do |task|
     @in_path   = task.scope.last
     @out_path  = "build/#{@in_path}"
@@ -72,15 +73,13 @@ namespace 'firefox' do
     sh <<-END
       mkdir -p #{@out_path}/lib
       mkdir -p #{@out_path}/data
-      #{merge(@js_files, "#{@out_path}/data/javascripts.js")}
-      #{merge(@css_files, "#{@out_path}/data/styles.css")}
-      echo "@title = '#{TITLE}';@version = '#{VERSION}';@description = '#{DESCRIPTION}'" > gadget.rb
-      erubis -E PrintOut -l ruby #{@in_path}/package.json.erb >> gadget.rb
-      ruby gadget.rb > #{@out_path}/package.json
       cp #{@in_path}/main.js #{@out_path}/lib
       cp assets/logo-48.png #{@out_path}/icon.png
-      rm -f gadget.rb
     END
+    save(@js_files, "#{@out_path}/data/javascripts.js")
+    save(@css_files, "#{@out_path}/data/styles.js")
+    save("#{@in_path}/package.json.erb", "#{@out_path}/package.json")
+
     vendor_js_files.each do |file|
       sh "cp #{file} #{@out_path}/data/"
     end
@@ -89,14 +88,16 @@ namespace 'firefox' do
   task :release => :build do
     cfx "--pkgdir=#{@out_path} xpi"
     sh <<-END
-      mv soundcloud-gmail-firefox-extension.xpi build/firefox-extension.xpi
+      mv jen-git-firefox-extension.xpi build/firefox-extension.xpi
     END
   end
 
+  desc "Test the gadget"
   task :test => :prepare do
     cfx "--pkgdir=#{@out_path} test"
   end
 
+  desc "Run the gadget"
   task :run => :prepare do
     cfx "--pkgdir=#{@out_path} run"
   end
@@ -110,18 +111,18 @@ end
 
 desc "Build all"
 task :build_all => :clean do
-  Rake::Task["chrome:build"].execute
-  Rake::Task["firefox:build"].execute
+  Rake::Task["chrome:build"].invoke
+  Rake::Task["firefox:build"].invoke
 end
 
 desc "Release all"
 task :release_all => :build_all do
-  Rake::Task["chrome:release"].execute
-  Rake::Task["firefox:release"].execute
+  Rake::Task["chrome:release"].invoke
+  Rake::Task["firefox:release"].invoke
 end
 
 desc "Deploys gadget to live branch"
-task :deploy => :build_all do
+task :deploy => :release_all do
   unless `git branch` =~ /^\* master$/
     puts "You must be on the master branch to deploy!"
     exit!
@@ -133,15 +134,20 @@ task :deploy => :build_all do
 
   sh <<-END
     cp LICENSE VERSION CHANGES.md build/
-    git checkout --track -b build origin/build
-    git checkout build
-    rm -rf *extension*
-    rm -rf google-app
+    git checkout --track -b gh-pages origin/gh-pages
+    git checkout gh-pages
+    rm *.js
+    rm -rf chrome
+    rm -rf firefox
     mv -f build/* .
     git commit -a --allow-empty -m 'Release #{VERSION}'
 
-    git push origin build
+    git push origin gh-pages
     git push origin --tags
+    rm -rf chrome
+    rm -rf firefox
+    rm *.zip
+    rm *.xpi
     git checkout master
   END
 end

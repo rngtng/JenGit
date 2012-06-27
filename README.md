@@ -6,6 +6,9 @@ Checks Buildstatus of a GitHub PullRequest like butter
 
 Install Chrome Plugin and visit a (SoundCloud) pull request..
 
+## Deploy/Release
+  $ rake chrome:release
+
 ## TODO
   * add cfg to remove SoundCloud dependency?
     * global, extensable match table -> branchname <-> builder
