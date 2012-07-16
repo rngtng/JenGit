@@ -54,6 +54,7 @@ namespace :chrome do
     save("#{@in_path}/manifest.json.erb", "#{@out_path}/manifest.json")
   end
 
+  desc "Build the release bundle"
   task :release => :build do
     sh "zip -r build/chrome-extension.zip #{@out_path}/"
   end
@@ -85,6 +86,7 @@ namespace :firefox do
     end
   end
 
+  desc "Build the release bundle"
   task :release => :build do
     cfx "--pkgdir=#{@out_path} xpi"
     sh <<-END
