@@ -50,7 +50,7 @@
 
 $(function() {
   $(".pull-head .state-open").each(function(){
-    $(".pull-head .commit-ref.from:first").each(function(){
+    $(".pull-head .pull-branch:last").each(function(){
       var shards = 6,
           branchName = $(this).html(),
           $ol = $('<ol></ol>');
@@ -61,7 +61,7 @@ $(function() {
         });
       }
 
-      $(".content-body.markdown-body.markdown-format:first").append($('<div class="jengit"><b>Tests:</b></div>').append($ol));
+      $(".content-body:first").append($('<div class="jengit"><b>Tests:</b></div>').append($ol));
     });
   });
 });
