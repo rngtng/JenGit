@@ -50,7 +50,7 @@ namespace :chrome do
     `mkdir -p #{@out_path}`
     `cp assets/logo* #{@out_path}/`
     save(@js_files, "#{@out_path}/javascripts.js")
-    save(@css_files, "#{@out_path}/styles.js")
+    save(@css_files, "#{@out_path}/styles.css")
     save("#{@in_path}/manifest.json.erb", "#{@out_path}/manifest.json")
   end
 
@@ -77,7 +77,7 @@ namespace :firefox do
       cp assets/logo-48.png #{@out_path}/icon.png
     END
     save(@js_files, "#{@out_path}/data/javascripts.js")
-    save(@css_files, "#{@out_path}/data/styles.js")
+    save(@css_files, "#{@out_path}/data/styles.css")
     save("#{@in_path}/package.json.erb", "#{@out_path}/package.json")
 
     vendor_js_files.each do |file|
