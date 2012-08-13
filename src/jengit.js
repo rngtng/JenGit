@@ -50,7 +50,7 @@
 
 $(function() {
   $(".pull-head .state-open").each(function(){
-    $(".pull-branch .css-truncate-target:last").each(function(){
+    $(".css-truncate-target:last").each(function(){
       var shards = 6,
           branchName = $(this).html(),
           $ol = $('<ol></ol>');
